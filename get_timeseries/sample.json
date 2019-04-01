@@ -1,0 +1,1 @@
+{"timeSeries": [{"metricKind": "DELTA", "metric": {"type": "agent.googleapis.com/agent/api_request_count"}, "points": [{"interval": {"endTime": "2018-12-14T19:58:17.140600Z", "startTime": "2018-12-14T18:58:17.140600Z"}, "value": {"int64Value": "358"}}], "resource": {"labels": {"project_id": "sage-facet-201016"}, "type": "gce_instance"}, "valueType": "INT64"}]}

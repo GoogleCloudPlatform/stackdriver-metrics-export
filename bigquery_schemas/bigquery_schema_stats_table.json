@@ -1,0 +1,57 @@
+[
+    {
+        "mode": "REQUIRED",
+        "name": "app_name",
+        "type": "STRING"
+    }, 
+    {
+        "mode": "REQUIRED",
+        "name": "batch_id",
+        "type": "STRING"
+    },
+    {
+        "mode": "REQUIRED",
+        "name": "message_id",
+        "type": "STRING"
+    },
+    {
+        "mode": "NULLABLE",
+        "name": "src_message_id",
+        "type": "STRING"
+    },
+    {
+        "mode": "NULLABLE",
+        "name": "metric_type",
+        "type": "STRING"
+    },
+    {
+        "mode": "NULLABLE",
+        "name": "error_msg_cnt",
+        "type": "INTEGER"
+    },
+    {
+        "mode": "NULLABLE",
+        "name": "msg_written_cnt",
+        "type": "INTEGER"
+    },
+    {
+        "mode": "NULLABLE",
+        "name": "msg_without_timeseries",
+        "type": "INTEGER"
+    },
+    {
+        "mode": "NULLABLE",
+        "name": "batch_start_time",
+        "type": "TIMESTAMP"
+    },
+    {
+        "mode": "NULLABLE",
+        "name": "processing_end_time",
+        "type": "TIMESTAMP"
+    },
+    {
+        "mode": "NULLABLE",
+        "name": "payload",
+        "type": "STRING"
+    }
+]

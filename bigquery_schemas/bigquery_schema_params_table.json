@@ -1,0 +1,44 @@
+[
+    {
+        "mode": "NULLABLE",
+        "name": "start_time",
+        "type": "TIMESTAMP"
+    },
+    {
+        "mode": "NULLABLE",
+        "name": "end_time",
+        "type": "TIMESTAMP"
+    },
+    {
+        "mode": "NULLABLE",
+        "name": "aggregation_alignment_period",
+        "type": "STRING"
+    },
+    {
+        "mode": "NULLABLE",
+        "name": "message_id",
+        "type": "STRING"
+    },
+    {
+        "mode": "NULLABLE",
+        "name": "project_list",
+        "type": "RECORD",
+        "fields": [
+            {
+                "mode": "REPEATED",
+                "name": "project_id",
+                "type": "STRING"
+            }
+        ]
+    },
+    {
+        "mode": "REQUIRED",
+        "name": "batch_id",
+        "type": "STRING"
+    },
+    {
+        "mode": "NULLABLE",
+        "name": "batch_start_time",
+        "type": "TIMESTAMP"
+    }
+]

@@ -1,0 +1,32 @@
+{
+  "metricDescriptors": [
+    {
+      "name": "projects/sage-facet-201016/metricDescriptors/pubsub.googleapis.com/subscription/push_request_count",
+      "labels": [
+        {
+          "key": "response_class",
+          "description": "A classification group for the response code. It can be one of ['ack', 'deadline_exceeded', 'internal', 'invalid', 'remote_server_4xx', 'remote_server_5xx', 'unreachable']."
+        },
+        {
+          "key": "response_code",
+          "description": "Operation response code string, derived as a string representation of a status code (e.g., 'success', 'not_found', 'unavailable')."
+        },
+        {
+          "key": "delivery_type",
+          "description": "Push delivery mechanism."
+        }
+      ],
+      "metricKind": "DELTA",
+      "valueType": "INT64",
+      "unit": "1",
+      "description": "Cumulative count of push attempts, grouped by result. Unlike pulls, the push server implementation does not batch user messages. So each request only contains one user message. The push server retries on errors, so a given user message can appear multiple times.",
+      "displayName": "Push requests",
+      "type": "pubsub.googleapis.com/subscription/push_request_count",
+      "metadata": {
+        "launchStage": "GA",
+        "samplePeriod": "60s",
+        "ingestDelay": "120s"
+      }
+    }
+  ]
+}

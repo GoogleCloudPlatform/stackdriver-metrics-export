@@ -1,0 +1,64 @@
+{ 
+    "timeSeries": [
+        {
+            "metric": {
+                "labels": {
+                    "delivery_type": "gae", 
+                    "response_class": "ack", 
+                    "response_code": "success"
+                }, 
+                "type": "pubsub.googleapis.com/subscription/push_request_count"
+            }, 
+            "metricKind": "DELTA", 
+            "points": [
+                {
+                    "interval": {
+                        "endTime": "2019-02-19T21:00:00.829121Z", 
+                        "startTime": "2019-02-19T20:00:00.829121Z"
+                    }, 
+                    "value": {
+                        "int64Value": "1"
+                    }
+                }
+            ], 
+            "resource": {
+                "labels": {
+                    "project_id": "sage-facet-201016", 
+                    "subscription_id": "metric_export_init_pub"
+                }, 
+                "type": "pubsub_subscription"
+            }, 
+            "valueType": "INT64"
+        }, 
+        {
+            "metric": {
+                "labels": {
+                    "delivery_type": "gae", 
+                    "response_class": "ack", 
+                    "response_code": "success"
+                }, 
+                "type": "pubsub.googleapis.com/subscription/push_request_count"
+            }, 
+            "metricKind": "DELTA", 
+            "points": [
+                {
+                    "interval": {
+                        "endTime": "2019-02-19T21:00:00.829121Z", 
+                        "startTime": "2019-02-19T20:00:00.829121Z"
+                    }, 
+                    "value": {
+                        "int64Value": "803"
+                    }
+                }
+            ], 
+            "resource": {
+                "labels": {
+                    "project_id": "sage-facet-201016", 
+                    "subscription_id": "metrics_list"
+                }, 
+                "type": "pubsub_subscription"
+            }, 
+            "valueType": "INT64"
+        }
+    ]
+}

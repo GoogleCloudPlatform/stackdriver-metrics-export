@@ -1,0 +1,28 @@
+{
+  "timeSeries": [
+    {
+      "metric": {
+        "type": "pubsub.googleapis.com/subscription/push_request_count"
+      },
+      "resource": {
+        "type": "pubsub_subscription",
+        "labels": {
+          "project_id": "sage-facet-201016"
+        }
+      },
+      "metricKind": "DELTA",
+      "valueType": "INT64",
+      "points": [
+        {
+          "interval": {
+            "startTime": "2019-02-08T14:00:00.311635Z",
+            "endTime": "2019-02-08T15:00:00.311635Z"
+          },
+          "value": {
+            "int64Value": "788"
+          }
+        }
+      ]
+    }
+  ]
+}
