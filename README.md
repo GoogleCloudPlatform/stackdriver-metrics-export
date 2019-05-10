@@ -12,10 +12,11 @@ cd stackdriver-metrics-export
 2. Create the BigQuery tables
 Create a Dataset and then a table using the schema JSON files
 ```sh
+cd bigquery_schemas
 bq mk metric_export
 bq mk --table --time_partitioning_type=DAY metric_export.sd_metrics_export_fin ./bigquery_schema.json
 bq mk --table --time_partitioning_type=DAY metric_export.sd_metrics_stats ./bigquery_schema_stats_table.json
-bq mk --table metric_export.sd_metrics_stats ./bigquery_schema_params_table.json
+bq mk --table metric_export.sd_metrics_params ./bigquery_schema_params_table.json
 ```
 
 3. Replace the JSON token in the config.py files
@@ -50,19 +51,19 @@ echo "y" | gcloud app deploy
 If you already have a default App Engine app in your project, enter the following command.
 
 ```sh
-export LIST_METRICS_URL=$(gcloud app browse -s list-metrics)
+export LIST_METRICS_URL=$(gcloud app browse -s list-metrics --no-launch-browser)
 ```
 if this was your first App Engine app in your project, enter the following command. 
 
 ```sh
-export LIST_METRICS_URL=$(gcloud app browse)
+export LIST_METRICS_URL=$(gcloud app browse --no-launch-browser)
 ```
 
 Now, get the get_timeseries and write_metrics URLs and create the Pub/Sub topics and subscriptions
 
 ```sh
-export GET_TIMESERIES_URL=$(gcloud app browse -s get-timeseries)
-export WRITE_METRICS_URL=$(gcloud app browse -s write-metrics)
+export GET_TIMESERIES_URL=$(gcloud app browse -s get-timeseries --no-launch-browser)
+export WRITE_METRICS_URL=$(gcloud app browse -s write-metrics --no-launch-browser) 
 
 gcloud pubsub topics create metrics_export_start
 gcloud pubsub subscriptions create metrics_export_start_sub --topic metrics_export_start --ack-deadline=60 --message-retention-duration=10m --push-endpoint="$LIST_METRICS_URL/_ah/push-handlers/receive_message"
@@ -82,7 +83,7 @@ gcloud pubsub topics publish metrics_export_start --message "{\"token\": \"$TOKE
 
 You can send in all of the parameters using the following command
 ```sh
-gcloud pubsub topics publish metrics_export_start --message "{\"token\": \"$TOKEN\"}, \"start_time\": \"2019-03-13T17:30:00.000000Z\", \"end_time\":\"2019-03-13T17:40:00.000000Z\",\"aggregation_alignment_period\":\"3600s\"}"
+gcloud pubsub topics publish metrics_export_start --message "{\"token\": \"$TOKEN\", \"start_time\": \"2019-03-13T17:30:00.000000Z\", \"end_time\":\"2019-03-13T17:40:00.000000Z\",\"aggregation_alignment_period\":\"3600s\"}"
 ```
 
 6. Verify that the app is working appropriately by running the end-to-end testing
