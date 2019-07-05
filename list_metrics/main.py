@@ -206,18 +206,17 @@ def get_and_publish_metrics(message_to_publish, metadata):
                 metadata["msg_written_cnt"] = 1
                 metadata["msg_without_timeseries"] = 0
                 msgs_published += 1
+                # build a list of stats messages to write to BigQuery
+                if config.WRITE_BQ_STATS_FLAG:
+                    json_msg = build_bigquery_stats_message(
+                        message_to_publish, metadata
+                    )
+                    json_msg_list.append(json_msg)
             else:
                 logging.debug("Excluded the metric: {}".format(metric['name']))
                 msgs_excluded += 1
                 metadata["msg_written_cnt"] = 0
                 metadata["msg_without_timeseries"] = 1
-
-            # build a list of stats messages to write to BigQuery
-            if config.WRITE_BQ_STATS_FLAG:
-                json_msg = build_bigquery_stats_message(
-                    message_to_publish, metadata
-                )
-                json_msg_list.append(json_msg)
 
         # Write to pubsub if there is 1 or more 
         publish_metrics(pubsub_msg_list)
