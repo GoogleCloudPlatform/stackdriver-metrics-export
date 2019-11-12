@@ -15,7 +15,7 @@ Create a Dataset and then a table using the schema JSON files
 bq mk metric_export
 bq mk --table --time_partitioning_type=DAY metric_export.sd_metrics_export_fin ./bigquery_schema.json
 bq mk --table --time_partitioning_type=DAY metric_export.sd_metrics_stats ./bigquery_schema_stats_table.json
-bq mk --table metric_export.sd_metrics_stats ./bigquery_schema_params_table.json
+bq mk --table metric_export.sd_metrics_params ./bigquery_schema_params_table.json
 ```
 
 3. Replace the JSON token in the config.py files
@@ -42,6 +42,9 @@ echo "y" | gcloud app deploy
 cd ../write_metrics
 pip install -t lib -r requirements.txt
 echo "y" | gcloud app deploy
+```
+
+
 ```
 
 
