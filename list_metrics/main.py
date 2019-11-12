@@ -42,6 +42,9 @@ def set_last_end_time(bucket_name, end_time_str):
     end_time_calc = end_time + delta
     end_time_calc_str = end_time_calc.strftime('%Y-%m-%dT%H:%M:%S.%fZ')
 
+    logging.debug("end_time_str: {}, end_time_Calc_str: {}".format(
+            end_time_str, end_time_calc_str)
+    )
     end_time_str_json = {
         "end_time": end_time_calc_str
     }
@@ -77,7 +80,7 @@ def get_last_end_time(bucket_name):
     return last_end_time_str
 
 
-def publish_metrics(msg_list):
+def publish_metrics(project_id, msg_list):
     """ Call the https://cloud.google.com/pubsub/docs/reference/rest/v1/projects.topics/publish
         using the googleapiclient to publish a message to Pub/Sub.
         The token and batch_id are included as attributes
@@ -85,17 +88,17 @@ def publish_metrics(msg_list):
     if len(msg_list) > 0:
         service = build('pubsub', 'v1', cache_discovery=True)
         topic_path = 'projects/{project_id}/topics/{topic}'.format(
-            project_id=app_identity.get_application_id(),
+            project_id=project_id,
             topic=config.PUBSUB_TOPIC
         )
         body = {
             "messages": msg_list
         }
-        logging.debug("pubsub msg is {}".format(json.dumps(body, sort_keys=True, indent=4)))
+        #logging.debug("pubsub msg is {}".format(json.dumps(body, sort_keys=True, indent=4)))
         response = service.projects().topics().publish(
             topic=topic_path, body=body
         ).execute()
-        logging.debug("response is {}".format(json.dumps(response, sort_keys=True, indent=4)))
+        #logging.debug("response is {}".format(json.dumps(response, sort_keys=True, indent=4)))
     else:
         logging.debug("No pubsub messages to publish")
 
@@ -105,7 +108,7 @@ def get_message_for_publish_metric(request, metadata):
         using the googleapiclient to publish a message to Pub/Sub.
         The token and batch_id are included as attributes
     """
-    logging.debug("sending message is {}".format(json.dumps(request, sort_keys=True, indent=4)))
+    #logging.debug("sending message is {}".format(json.dumps(request, sort_keys=True, indent=4)))
 
     data = json.dumps(request).encode('utf-8')
 
@@ -118,7 +121,7 @@ def get_message_for_publish_metric(request, metadata):
             "src_message_id": metadata["message_id"]
         }
     }
-    logging.debug("pubsub message is {}".format(json.dumps(message, sort_keys=True, indent=4)))
+    #logging.debug("pubsub message is {}".format(json.dumps(message, sort_keys=True, indent=4)))
     return message
 
 
@@ -137,38 +140,49 @@ def check_date_format(date_str):
 
 
 def check_exclusions(metric):
-    """ Check whether to exclude a metric based on the exclusions list
+    """ Check whether to exclude a metric based on the inclusions OR exclusions list
     """
+    inclusions = config.INCLUSIONS
+    for inclusion in inclusions['metricTypes']:
+        #logging.debug("inclusion metricTypes check:  {},{}".format(metric['type'],inclusion['metricType']))
+        if metric['type'].find(inclusion['metricType']) != -1:
+            logging.debug("including based on metricType {},{}".format(metric['type'],inclusion['metricType']))
+            return True
+
+    # if there are inclusions, then ignore the exclusions
+    if len(inclusions['metricTypes']) > 0:
+        return False
+
     exclusions = config.EXCLUSIONS
     for exclusion in exclusions['metricKinds']:
         logging.debug("exclusion check:  {},{}".format(metric['metricKind'],exclusion['metricKind']))
         if ((metric['metricKind'] == exclusion['metricKind']) and
             (metric['valueType'] == exclusion['valueType'])):
-            logging.debug("excluding based on metricKind {},{} AND {},{}".format(metric['metricKind'],exclusion['metricKind'],metric['valueType'],exclusion['valueType']))
+            #logging.debug("excluding based on metricKind {},{} AND {},{}".format(metric['metricKind'],exclusion['metricKind'],metric['valueType'],exclusion['valueType']))
             return False
 
     for exclusion in exclusions['metricTypes']:
         logging.debug("exclusion metricTypes check:  {},{}".format(metric['type'],exclusion['metricType']))
         if metric['type'].find(exclusion['metricType']) != -1:
-            logging.debug("excluding based on metricType {},{}".format(metric['type'],exclusion['metricType']))
+            #logging.debug("excluding based on metricType {},{}".format(metric['type'],exclusion['metricType']))
             return False
 
     for exclusion in exclusions['metricTypeGroups']:
         logging.debug("exclusion metricTypeGroups check:  {},{}".format(metric['type'],exclusion['metricTypeGroup']))
         if metric['type'].find(exclusion['metricTypeGroup']) != -1:
-            logging.debug("excluding based on metricTypeGroup {},{}".format(metric['type'],exclusion['metricTypeGroup']))
+            #logging.debug("excluding based on metricTypeGroup {},{}".format(metric['type'],exclusion['metricTypeGroup']))
             return False
     return True
 
 
-def get_metrics(next_page_token):
+def get_metrics(project_id, next_page_token):
     """ Call the https://cloud.google.com/monitoring/api/ref_v3/rest/v3/projects.metricDescriptors/list
         using the googleapiclient to get all the metricDescriptors for the project
     """
 
     service = build('monitoring', 'v3', cache_discovery=True)
     project_name = 'projects/{project_id}'.format(
-        project_id=app_identity.get_application_id()
+        project_id=project_id
     )
 
     metrics = service.projects().metricDescriptors().list(
@@ -177,9 +191,11 @@ def get_metrics(next_page_token):
          pageToken=next_page_token
     ).execute()
 
+    """
     logging.debug("size: {} response: {}".format(
         len(metrics), json.dumps(metrics, sort_keys=True, indent=4))
     )
+    """
     return metrics
 
 
@@ -197,16 +213,17 @@ def get_and_publish_metrics(message_to_publish, metadata):
         json_msg_list = []
         pubsub_msg_list = []
 
-        metric_list = get_metrics(next_page_token)
+        project_id = message_to_publish["project_id"]
+        metric_list = get_metrics(project_id, next_page_token)
 
         metrics_count_from_api += len(metric_list['metricDescriptors'])
         for metric in metric_list['metricDescriptors']:
-            logging.debug("Processing metric {} for publish".format(metric))
+            #logging.debug("Processing metric {} for publish".format(metric))
             metadata["payload"] = '{}'.format(json.dumps(metric))
             metadata["error_msg_cnt"] = 0
 
+            message_to_publish["metric"] = metric
             if check_exclusions(metric):
-                message_to_publish["metric"] = metric
                 pubsub_msg = get_message_for_publish_metric(
                     message_to_publish, metadata
                 )
@@ -215,7 +232,7 @@ def get_and_publish_metrics(message_to_publish, metadata):
                 metadata["msg_without_timeseries"] = 0
                 msgs_published += 1
             else:
-                logging.debug("Excluded the metric: {}".format(metric['name']))
+                #logging.debug("Excluded the metric: {}".format(metric['name']))
                 msgs_excluded += 1
                 metadata["msg_written_cnt"] = 0
                 metadata["msg_without_timeseries"] = 1
@@ -228,7 +245,7 @@ def get_and_publish_metrics(message_to_publish, metadata):
                 json_msg_list.append(json_msg)
 
         # Write to pubsub if there is 1 or more 
-        publish_metrics(pubsub_msg_list)
+        publish_metrics(project_id, pubsub_msg_list)
 
         # write the list of stats messages to BigQuery
         if config.WRITE_BQ_STATS_FLAG:
@@ -245,14 +262,13 @@ def get_and_publish_metrics(message_to_publish, metadata):
     return stats
 
 
-def write_stats(stats, batch_id):
+def write_stats(stats, project_id, batch_id):
     """ Write 3 custom monitoring metrics to the Monitoring API
     """
-
-    logging.debug("write_stats")
+    logging.debug("write_stats: {}".format(json.dumps(stats)))
     service = build('monitoring', 'v3',cache_discovery=True)
     project_name = 'projects/{project_id}'.format(
-        project_id=app_identity.get_application_id()
+        project_id=project_id
     )
 
     end_time = datetime.now()
@@ -270,7 +286,7 @@ def write_stats(stats, batch_id):
                 "resource": {
                     "type": "generic_node",
                     "labels": {
-                        "project_id": app_identity.get_application_id(),
+                        "project_id": project_id,
                         "location": "us-central1-a",
                         "namespace": "stackdriver-metric-export",
                         "node_id": "list-metrics"
@@ -338,7 +354,7 @@ def build_bigquery_stats_message(metric, metadata):
     json_msg = {
         "json": bq_msg
     }
-    logging.debug("json_msg {}".format(json.dumps(json_msg, sort_keys=True, indent=4)))
+    #logging.debug("json_msg {}".format(json.dumps(json_msg, sort_keys=True, indent=4)))
     return json_msg
 
 
@@ -346,7 +362,7 @@ def write_to_bigquery(json_row_list):
     """ Write rows to the BigQuery stats table using the googleapiclient and the streaming insertAll method
         https://cloud.google.com/bigquery/docs/reference/rest/v2/tabledata/insertAll
     """
-    logging.debug("write_to_bigquery")
+    #logging.debug("write_to_bigquery")
 
     if len(json_row_list) > 0:
         bigquery = build('bigquery', 'v2', cache_discovery=True)
@@ -356,7 +372,7 @@ def write_to_bigquery(json_row_list):
             "skipInvalidRows": "false",
             "rows": json_row_list
         }
-        logging.debug('body: {}'.format(json.dumps(body, sort_keys=True, indent=4)))
+        #logging.debug('body: {}'.format(json.dumps(body, sort_keys=True, indent=4)))
 
         response = bigquery.tabledata().insertAll(
             projectId=app_identity.get_application_id(),
@@ -364,7 +380,7 @@ def write_to_bigquery(json_row_list):
             tableId=config.BIGQUERY_STATS_TABLE,
             body=body
         ).execute()
-        logging.debug("BigQuery said... = {}".format(response))
+        #logging.debug("BigQuery said... = {}".format(response))
 
         bq_msgs_with_errors = 0
         if "insertErrors" in response:
@@ -380,12 +396,12 @@ def write_to_bigquery(json_row_list):
         return None
 
 
-def write_input_parameters_to_bigquery(metadata, msg):
+def write_input_parameters_to_bigquery(project_id, metadata, msg):
     """ Write rows to the BigQuery input parameters table using the 
         googleapiclient and the streaming insertAll method
         https://cloud.google.com/bigquery/docs/reference/rest/v2/tabledata/insertAll
     """
-    logging.debug("write_input_parameters_to_bigquery")
+    #logging.debug("write_input_parameters_to_bigquery")
 
     bigquery = build('bigquery', 'v2', cache_discovery=True)
 
@@ -402,7 +418,7 @@ def write_input_parameters_to_bigquery(metadata, msg):
                     "message_id": metadata["message_id"],
                     "project_list": {
                         "project_id": [
-                            app_identity.get_application_id()
+                            project_id
                         ]
                     },
                     "batch_id": metadata["batch_id"],
@@ -411,7 +427,7 @@ def write_input_parameters_to_bigquery(metadata, msg):
             }
         ]
     }
-    logging.debug('body: {}'.format(json.dumps(body, sort_keys=True, indent=4)))
+    #logging.debug('body: {}'.format(json.dumps(body, sort_keys=True, indent=4)))
 
     response = bigquery.tabledata().insertAll(
         projectId=app_identity.get_application_id(),
@@ -419,7 +435,7 @@ def write_input_parameters_to_bigquery(metadata, msg):
         tableId=config.BIGQUERY_PARAMS_TABLE,
         body=body
     ).execute()
-    logging.debug("BigQuery said... = {}".format(response))
+    #logging.debug("BigQuery said... = {}".format(response))
 
     bq_msgs_with_errors = 0
     if "insertErrors" in response:
@@ -474,6 +490,13 @@ class ReceiveMessage(webapp2.RequestHandler):
                 raise ValueError("token missing from request")
             if not data["token"] == config.PUBSUB_VERIFICATION_TOKEN:
                 raise ValueError("token from request doesn't match, received: {}".format(data["token"]))
+
+            # if the project has been passed in, use that, otherwise use default project of App Engine app
+            if "project_id" not in data:
+                project_id = project_id=app_identity.get_application_id()
+            else:
+                project_id = data["project_id"]
+            message_to_publish["project_id"] = project_id
 
             # if the alignment_period is supplied, use that, otherwise use default
             if "aggregation_alignment_period" not in data:
@@ -535,7 +558,7 @@ class ReceiveMessage(webapp2.RequestHandler):
                 "batch_start_time": publish_time
             }
             if config.WRITE_BQ_STATS_FLAG:
-                write_input_parameters_to_bigquery(metadata, message_to_publish)
+                write_input_parameters_to_bigquery(project_id, metadata, message_to_publish)
             stats = get_and_publish_metrics(message_to_publish, metadata)
             logging.debug("Stats are {}".format(json.dumps(stats)))
 
@@ -549,7 +572,7 @@ class ReceiveMessage(webapp2.RequestHandler):
 
             # Write the stats to custom monitoring metrics
             if config.WRITE_MONITORING_STATS_FLAG:
-                write_stats(stats, batch_id)
+                write_stats(stats, project_id, batch_id)
 
             self.response.write(stats)
         except KeyError as ke:
