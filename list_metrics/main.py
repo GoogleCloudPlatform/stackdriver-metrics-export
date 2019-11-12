@@ -18,24 +18,32 @@ import logging
 import webapp2
 import json
 import base64
-from datetime import datetime 
+from datetime import datetime
+from datetime import timedelta
 from googleapiclient.discovery import build
 from google.appengine.api import app_identity
 import os
 import cloudstorage as gcs
+from cloudstorage import NotFoundError
 import config
 import random
 import string
 import re
-from cloudstorage import NotFoundError
 
 
 def set_last_end_time(bucket_name, end_time_str):
     """ Write the end_time as a string value in a JSON object in GCS. 
         This file is used to remember the last end_time in case one isn't provided
     """
+    # get the datetime object
+    end_time = datetime.strptime(end_time_str, '%Y-%m-%dT%H:%M:%S.%fZ')
+    delta = timedelta(seconds=1)
+    # Add 1 second & convert back to str
+    end_time_calc = end_time + delta
+    end_time_calc_str = end_time_calc.strftime('%Y-%m-%dT%H:%M:%S.%fZ')
+
     end_time_str_json = {
-        "end_time": end_time_str
+        "end_time": end_time_calc_str
     }
     write_retry_params = gcs.RetryParams(backoff_factor=1.1)
     gcs_file = gcs.open('/{}/{}'.format(
@@ -499,8 +507,7 @@ class ReceiveMessage(webapp2.RequestHandler):
                     raise ValueError("end_time needs to be in the format 2019-02-08T14:00:00.311635Z, received: {}".format(end_time_str))
             message_to_publish["end_time"] = end_time_str
 
-            # if the start_time is supplied, use that, else go back 1 aggregation_alignment_period 
-            # must be in format ddds
+            # if the start_time is supplied, use the previous end_time 
             sent_in_start_time_flag = False
             if "start_time" not in data:
                 start_time_str = get_last_end_time(bucket_name)
