@@ -1,0 +1,24 @@
+{
+  "name": "cloud-functions-stackdriver-metric-export-nodejs",
+  "version": "0.0.1",
+  "private": true,
+  "license": "Apache-2.0",
+  "author": "Google Inc.",
+  "engines": {
+    "node": ">=4.3.2"
+  },
+  "scripts": {
+    "test": "mocha test/*.test.js --timeout=60000 --exit"
+  },
+  "dependencies": {
+    "@google-cloud/compute": "^1.1.1",
+    "@google-cloud/monitoring": "^1.2.2",
+    "@google-cloud/pubsub": "^0.30.1",
+    "@google-cloud/resource": "^1.1.2"
+  },
+  "devDependencies": {
+    "assert": "^2.0.0",
+    "child_process": "^1.0.2",
+    "mocha": "^6.2.0"
+  }
+}

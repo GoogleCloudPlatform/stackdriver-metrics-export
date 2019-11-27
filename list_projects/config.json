@@ -1,0 +1,6 @@
+{
+    "PROJECTS_TOPIC" : "projects/YOUR_PROJECT_ID/topics/metrics_export_start",
+  	"TOKEN": "99a9ffa8797a629783cb4aa762639e92b098bac5",
+    "ACTIVE": "ACTIVE",
+    "METRIC_EXPORT_PUBSUB_VERIFICATION_TOKEN": "16b2ecfb-7734-48b9-817d-4ac8bd623c87"
+}
