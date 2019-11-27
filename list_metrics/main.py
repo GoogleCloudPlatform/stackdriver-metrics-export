@@ -31,18 +31,19 @@ import string
 import re
 
 
-def set_last_end_time(bucket_name, end_time_str):
+def set_last_end_time(project_id, bucket_name, end_time_str, offset):
     """ Write the end_time as a string value in a JSON object in GCS. 
         This file is used to remember the last end_time in case one isn't provided
     """
     # get the datetime object
     end_time = datetime.strptime(end_time_str, '%Y-%m-%dT%H:%M:%S.%fZ')
-    delta = timedelta(seconds=1)
-    # Add 1 second & convert back to str
+    delta = timedelta(seconds=offset)
+    # Add offset seconds & convert back to str
     end_time_calc = end_time + delta
     end_time_calc_str = end_time_calc.strftime('%Y-%m-%dT%H:%M:%S.%fZ')
+    file_name = '{}.{}'.format(project_id, config.LAST_END_TIME_FILENAME)
 
-    logging.debug("end_time_str: {}, end_time_Calc_str: {}".format(
+    logging.debug("set_last_end_time - end_time_str: {}, end_time_Calc_str: {}".format(
             end_time_str, end_time_calc_str)
     )
     end_time_str_json = {
@@ -50,37 +51,41 @@ def set_last_end_time(bucket_name, end_time_str):
     }
     write_retry_params = gcs.RetryParams(backoff_factor=1.1)
     gcs_file = gcs.open('/{}/{}'.format(
-        bucket_name, config.LAST_END_TIME_FILENAME),
+        bucket_name, file_name),
                         'w',
                         content_type='text/plain',
                         retry_params=write_retry_params)
     gcs_file.write(json.dumps(end_time_str_json))
     gcs_file.close()
 
+    return end_time_calc_str
 
-def get_last_end_time(bucket_name):
+def get_last_end_time(project_id, bucket_name):
     """ Get the end_time as a string value from a JSON object in GCS. 
         This file is used to remember the last end_time in case one isn't provided
     """
     last_end_time_str = ""
+    file_name = '{}.{}'.format(project_id, config.LAST_END_TIME_FILENAME)
+    logging.debug("get_last_end_time - file_name: {}".format(file_name))
     try:
         gcs_file = gcs.open('/{}/{}'.format(
-            bucket_name, config.LAST_END_TIME_FILENAME))
+            bucket_name, file_name))
         contents = gcs_file.read()
         logging.debug("GCS FILE CONTENTS: {}".format(contents))
         json_contents = json.loads(contents) 
         last_end_time_str = json_contents["end_time"]
         gcs_file.close()
     except NotFoundError as nfe:
-        logging.error("Missing file when reading from GCS: {}".format(nfe))
+        logging.error("Missing file when reading {} from GCS: {}".format(file_name, nfe))
         last_end_time_str = None
     except Exception as e:
-        logging.error("Received error when reading from GCS: {}".format(e))
+        logging.error("Received error when reading {} from GCS: {}".format(file_name,e))
         last_end_time_str = None
+
     return last_end_time_str
 
 
-def publish_metrics(project_id, msg_list):
+def publish_metrics(msg_list):
     """ Call the https://cloud.google.com/pubsub/docs/reference/rest/v1/projects.topics/publish
         using the googleapiclient to publish a message to Pub/Sub.
         The token and batch_id are included as attributes
@@ -88,7 +93,7 @@ def publish_metrics(project_id, msg_list):
     if len(msg_list) > 0:
         service = build('pubsub', 'v1', cache_discovery=True)
         topic_path = 'projects/{project_id}/topics/{topic}'.format(
-            project_id=project_id,
+            project_id=app_identity.get_application_id(),
             topic=config.PUBSUB_TOPIC
         )
         body = {
@@ -191,11 +196,11 @@ def get_metrics(project_id, next_page_token):
          pageToken=next_page_token
     ).execute()
 
-    """
-    logging.debug("size: {} response: {}".format(
-        len(metrics), json.dumps(metrics, sort_keys=True, indent=4))
+    logging.debug("project_id: {}, size: {}".format(
+        project_id,
+        len(metrics["metricDescriptors"])
+        )
     )
-    """
     return metrics
 
 
@@ -245,7 +250,7 @@ def get_and_publish_metrics(message_to_publish, metadata):
                 json_msg_list.append(json_msg)
 
         # Write to pubsub if there is 1 or more 
-        publish_metrics(project_id, pubsub_msg_list)
+        publish_metrics(pubsub_msg_list)
 
         # write the list of stats messages to BigQuery
         if config.WRITE_BQ_STATS_FLAG:
@@ -262,13 +267,13 @@ def get_and_publish_metrics(message_to_publish, metadata):
     return stats
 
 
-def write_stats(stats, project_id, batch_id):
+def write_stats(stats, stats_project_id, batch_id):
     """ Write 3 custom monitoring metrics to the Monitoring API
     """
     logging.debug("write_stats: {}".format(json.dumps(stats)))
     service = build('monitoring', 'v3',cache_discovery=True)
     project_name = 'projects/{project_id}'.format(
-        project_id=project_id
+        project_id=app_identity.get_application_id()
     )
 
     end_time = datetime.now()
@@ -281,12 +286,13 @@ def write_stats(stats, project_id, batch_id):
                     "type": metric_type,
                     "labels": {
                         "batch_id": batch_id,
+                        "metrics_project_id": stats_project_id
                     }
                 },
                 "resource": {
                     "type": "generic_node",
                     "labels": {
-                        "project_id": project_id,
+                        "project_id": app_identity.get_application_id(),
                         "location": "us-central1-a",
                         "namespace": "stackdriver-metric-export",
                         "node_id": "list-metrics"
@@ -507,9 +513,9 @@ class ReceiveMessage(webapp2.RequestHandler):
                 matched = pattern.match(aggregation_alignment_period)
                 if not matched:
                     raise ValueError("aggregation_alignment_period needs to be digits followed by an 's' such as 3600s, received: {}".format(aggregation_alignment_period))
-                alignment_seconds = int(aggregation_alignment_period[:len(aggregation_alignment_period)-1])
-                if alignment_seconds < 60:
-                    raise ValueError("aggregation_alignment_period needs to be more than 60s, received: {}".format(aggregation_alignment_period)) 
+            alignment_seconds = int(aggregation_alignment_period[:len(aggregation_alignment_period)-1])
+            if alignment_seconds < 60:
+                raise ValueError("aggregation_alignment_period needs to be more than 60s, received: {}".format(aggregation_alignment_period)) 
             message_to_publish["aggregation_alignment_period"] = aggregation_alignment_period
 
             # get the App Engine default bucket name to store a GCS file with last end_time
@@ -533,9 +539,11 @@ class ReceiveMessage(webapp2.RequestHandler):
             # if the start_time is supplied, use the previous end_time 
             sent_in_start_time_flag = False
             if "start_time" not in data:
-                start_time_str = get_last_end_time(bucket_name)
+                start_time_str = get_last_end_time(project_id, bucket_name)
+                # if the file hasn't been found, then start 1 alignment period in the past
                 if not start_time_str:
-                    raise ValueError("start_time couldn't be read from GCS, received: {}".format(start_time_str))
+                    start_time_str = set_last_end_time(project_id, bucket_name, end_time_str, (alignment_seconds * -1))
+                    #raise ValueError("start_time couldn't be read from GCS, received: {}".format(start_time_str))
                 logging.debug("start_time_str: {}, end_time_str: {}".format(start_time_str, end_time_str))
             else:
                 sent_in_start_time_flag = True
@@ -568,7 +576,7 @@ class ReceiveMessage(webapp2.RequestHandler):
             previous end_time
             """
             if not sent_in_start_time_flag:
-                set_last_end_time(bucket_name, end_time_str)
+                set_last_end_time(project_id, bucket_name, end_time_str, 1)
 
             # Write the stats to custom monitoring metrics
             if config.WRITE_MONITORING_STATS_FLAG:

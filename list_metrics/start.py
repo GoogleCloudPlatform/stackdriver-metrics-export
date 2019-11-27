@@ -29,6 +29,7 @@ class ReceiveStart(webapp2.RequestHandler):
         """ Write the end_time as a string value in a JSON object in GCS. 
             This file is used to remember the last end_time in case one isn't provided
         """
+        project_id = app_identity.get_application_id()
         end_time = datetime.now()
         end_time_str = end_time.strftime('%Y-%m-%dT%H:%M:%S.%fZ')
 
@@ -37,7 +38,9 @@ class ReceiveStart(webapp2.RequestHandler):
         }
         write_retry_params = gcs.RetryParams(backoff_factor=1.1)
         gcs_file = gcs.open('/{}/{}'.format(
-            bucket_name, config.LAST_END_TIME_FILENAME),
+            bucket_name, '{}.{}'.format(
+                project_id,
+                config.LAST_END_TIME_FILENAME)),
                             'w',
                             content_type='text/plain',
                             retry_params=write_retry_params)
@@ -48,12 +51,15 @@ class ReceiveStart(webapp2.RequestHandler):
         last_end_time_str = ""
         try:
             # get the App Engine default bucket name to store a GCS file with last end_time
+            project_id = app_identity.get_application_id()
             bucket_name = os.environ.get('BUCKET_NAME',
                 app_identity.get_default_gcs_bucket_name()
             )
 
             gcs_file = gcs.open('/{}/{}'.format(
-                bucket_name, config.LAST_END_TIME_FILENAME))
+                bucket_name, '{}.{}'.format(
+                    project_id,
+                    config.LAST_END_TIME_FILENAME)))
             contents = gcs_file.read()
             logging.debug("GCS FILE CONTENTS: {}".format(contents))
             json_contents = json.loads(contents) 
@@ -66,7 +72,6 @@ class ReceiveStart(webapp2.RequestHandler):
             logging.error("Received error when reading from GCS: {}".format(e))
             last_end_time_str = None
 
-        # if there is not an existing file, create one
         try:
             if not last_end_time_str:
                 self.set_last_end_time(bucket_name)
