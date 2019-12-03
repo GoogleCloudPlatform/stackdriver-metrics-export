@@ -24,15 +24,21 @@ BIGQUERY_STATS_TABLE='sd_metrics_stats'
 BIGQUERY_PARAMS_TABLE='sd_metrics_params'
 WRITE_BQ_STATS_FLAG=True
 WRITE_MONITORING_STATS_FLAG=True
+ALL="*"
 
 INCLUSIONS = {
+    "include_all": "",
     "metricTypes":[
 #       { "metricType": "compute.googleapis.com/instance/cpu/utilization" },
 #       { "metricType": "compute.googleapis.com/instance/disk/write_ops_count" }
+    ],
+    "metricTypeGroups": [
+#        { "metricTypeGroup": "bigquery.googleapis.com" }
     ]
 }
 
 EXCLUSIONS = {
+    "exclude_all": "",
     "metricKinds":[
         {
             "metricKind": "GAUGE", 

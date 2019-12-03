@@ -145,38 +145,64 @@ def check_date_format(date_str):
 
 
 def check_exclusions(metric):
-    """ Check whether to exclude a metric based on the inclusions OR exclusions list
+    """ Check whether to exclude a metric based on the inclusions OR exclusions list. 
+        Note that this checks inclusions first.
+        returns True for metrics to include
+        returns False for metrics to exclude
     """
     inclusions = config.INCLUSIONS
-    for inclusion in inclusions['metricTypes']:
-        #logging.debug("inclusion metricTypes check:  {},{}".format(metric['type'],inclusion['metricType']))
-        if metric['type'].find(inclusion['metricType']) != -1:
-            logging.debug("including based on metricType {},{}".format(metric['type'],inclusion['metricType']))
-            return True
+    if "include_all" in inclusions and inclusions["include_all"] == config.ALL:
+        #logging.debug("including based on include_all setting {},{}".format(metric['type'],inclusions["include_all"]))
+        return True
 
-    # if there are inclusions, then ignore the exclusions
-    if len(inclusions['metricTypes']) > 0:
-        return False
+    if 'metricKinds' in inclusions:
+        for inclusion in inclusions['metricKinds']:
+            #logging.debug("inclusion check:  {},{}".format(metric['metricKind'],inclusion['metricKind']))
+            if ((metric['metricKind'] == inclusion['metricKind']) and
+                (metric['valueType'] == inclusion['valueType'])):
+                #logging.debug("including based on metricKind {},{} AND {},{}".format(metric['metricKind'],inclusion['metricKind'],metric['valueType'],inclusion['valueType']))
+                return True
+
+    if 'metricTypes' in inclusions:
+        for inclusion in inclusions['metricTypes']:
+            #logging.debug("inclusion metricTypes check:  {},{}".format(metric['type'],inclusion['metricType']))
+            if metric['type'].find(inclusion['metricType']) != -1:
+                #logging.debug("including based on metricType {},{}".format(metric['type'],inclusion['metricType']))
+                return True
+
+    if 'metricTypeGroups' in inclusions:
+        for inclusion in inclusions['metricTypeGroups']:
+            #logging.debug("inclusion metricTypes check:  {},{}".format(metric['type'],inclusion['metricTypeGroup']))
+            if metric['type'].find(inclusion['metricTypeGroup']) != -1:
+                logging.debug("including based on metricTypeGroups {},{}".format(metric['type'],inclusion['metricTypeGroup']))
+                return True
 
     exclusions = config.EXCLUSIONS
-    for exclusion in exclusions['metricKinds']:
-        logging.debug("exclusion check:  {},{}".format(metric['metricKind'],exclusion['metricKind']))
-        if ((metric['metricKind'] == exclusion['metricKind']) and
-            (metric['valueType'] == exclusion['valueType'])):
-            #logging.debug("excluding based on metricKind {},{} AND {},{}".format(metric['metricKind'],exclusion['metricKind'],metric['valueType'],exclusion['valueType']))
-            return False
+    if "exclude_all" in exclusions and exclusions["exclude_all"] == config.ALL:
+        #logging.debug("excluding based on exclude_all setting {},{}".format(metric['type'],exclusions["exclude_all"]))
+        return False
 
-    for exclusion in exclusions['metricTypes']:
-        logging.debug("exclusion metricTypes check:  {},{}".format(metric['type'],exclusion['metricType']))
-        if metric['type'].find(exclusion['metricType']) != -1:
-            #logging.debug("excluding based on metricType {},{}".format(metric['type'],exclusion['metricType']))
-            return False
+    if 'metricKinds' in exclusions:
+        for exclusion in exclusions['metricKinds']:
+            #logging.debug("exclusion check:  {},{}".format(metric['metricKind'],exclusion['metricKind']))
+            if ((metric['metricKind'] == exclusion['metricKind']) and
+                (metric['valueType'] == exclusion['valueType'])):
+                #logging.debug("excluding based on metricKind {},{} AND {},{}".format(metric['metricKind'],exclusion['metricKind'],metric['valueType'],exclusion['valueType']))
+                return False
 
-    for exclusion in exclusions['metricTypeGroups']:
-        logging.debug("exclusion metricTypeGroups check:  {},{}".format(metric['type'],exclusion['metricTypeGroup']))
-        if metric['type'].find(exclusion['metricTypeGroup']) != -1:
-            #logging.debug("excluding based on metricTypeGroup {},{}".format(metric['type'],exclusion['metricTypeGroup']))
-            return False
+    if 'metricTypes' in exclusions:
+        for exclusion in exclusions['metricTypes']:
+            #logging.debug("exclusion metricTypes check:  {},{}".format(metric['type'],exclusion['metricType']))
+            if metric['type'].find(exclusion['metricType']) != -1:
+                #logging.debug("excluding based on metricType {},{}".format(metric['type'],exclusion['metricType']))
+                return False
+
+    if 'metricTypeGroups' in exclusions:
+        for exclusion in exclusions['metricTypeGroups']:
+            #logging.debug("exclusion metricTypeGroups check:  {},{}".format(metric['type'],exclusion['metricTypeGroup']))
+            if metric['type'].find(exclusion['metricTypeGroup']) != -1:
+                #logging.debug("excluding based on metricTypeGroup {},{}".format(metric['type'],exclusion['metricTypeGroup']))
+                return False
     return True
 
 
