@@ -76,12 +76,13 @@ class ReceiveMessage(webapp2.RequestHandler):
         metric_val_type = data["metric"]['valueType']
         end_time_str = data["end_time"]
         start_time_str = data["start_time"]
+        project_id = data["project_id"]
 
         logging.debug('get_timeseries for metric: {},{},{},{},{}'.format(
             metric_type, metric_kind, metric_val_type, start_time_str, end_time_str)
         )
         project_name = 'projects/{project_id}'.format(
-            project_id=app_identity.get_application_id()
+            project_id=project_id
         )
         # Capture the stats 
         stats = {}
@@ -384,6 +385,9 @@ class ReceiveMessage(webapp2.RequestHandler):
                 raise ValueError("Missing start_time key in Pub/Sub message")
             if "aggregation_alignment_period" not in data:
                 raise ValueError("Missing aggregation_alignment_period key in Pub/Sub message")
+            if "project_id" not in data:
+                data["project_id"] = app_identity.get_application_id()   
+
 
             metadata = {
                 "batch_id": batch_id,
