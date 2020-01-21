@@ -26,7 +26,7 @@ Create a Dataset and then a table using the schema JSON files
 bq mk metric_export
 bq mk --table --time_partitioning_type=DAY metric_export.sd_metrics_export_fin ./bigquery_schema.json
 bq mk --table --time_partitioning_type=DAY metric_export.sd_metrics_stats ./bigquery_schema_stats_table.json
-bq mk --table metric_export.sd_metrics_stats ./bigquery_schema_params_table.json
+bq mk --table metric_export.sd_metrics_params  ./bigquery_schema_params_table.json
 ```
 
 5. Replace the JSON token in the config.py files
@@ -95,6 +95,7 @@ gcloud pubsub subscriptions create write_metrics_sub --topic write_metrics --ack
 gcloud beta iam service-accounts create \
 gce-list-projects \
 --description "Used for the function that lists the projects for the GCE Footprint Cloud Function"
+export LIST_PROJECTS_SERVICE_ACCOUNT=gce-list-projects@$PROJECT_ID.iam.gserviceaccount.com 
 ```
 
 9 Assign IAM permissions to the service account
@@ -106,7 +107,7 @@ gcloud projects add-iam-policy-binding  $PROJECT_ID --member="serviceAccount:$LI
 
 10. Deploy the list_projects function
 ```sh
-export LIST_PROJECTS_SERVICE_ACCOUNT=gce-list-projects@$PROJECT_ID.iam.gserviceaccount.com 
+cd ../list_projects 
 gcloud functions deploy list_projects \
 --trigger-topic metric_export_get_project_start \
 --runtime nodejs10 \
@@ -117,7 +118,7 @@ gcloud functions deploy list_projects \
 11. Deploy the Cloud Scheduler job
 ```sh
 gcloud scheduler jobs create pubsub metric_export \
---schedule "*/1 * * * *" \
+--schedule "*/5 * * * *" \
 --topic metric_export_get_project_start \
 --message-body "{ \"token\":\"$(echo $LIST_PROJECTS_TOKEN)\"}"
 ```
