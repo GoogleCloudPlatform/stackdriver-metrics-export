@@ -66,7 +66,7 @@ echo "y" | gcloud app deploy
 If you already have a default App Engine app in your project, enter the following command.
 
 ```sh
-export LIST_METRICS_URL=https://write-metrics-dot-$PROJECT_ID.appspot.com
+export LIST_METRICS_URL=https://list-metrics-dot-$PROJECT_ID.appspot.com
 ```
 if this was your first App Engine app in your project, enter the following command. 
 
