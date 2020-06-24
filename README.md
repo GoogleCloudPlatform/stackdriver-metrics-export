@@ -24,9 +24,9 @@ export PROJECT_ID=[YOUR_PROJECT_ID]
 Create a Dataset and then a table using the schema JSON files
 ```sh
 bq mk metric_export
-bq mk --table --time_partitioning_type=DAY metric_export.sd_metrics_export_fin ./bigquery_schema.json
-bq mk --table --time_partitioning_type=DAY metric_export.sd_metrics_stats ./bigquery_schema_stats_table.json
-bq mk --table metric_export.sd_metrics_params  ./bigquery_schema_params_table.json
+bq mk --table --time_partitioning_type=DAY metric_export.sd_metrics_export_fin ./bigquery_schemas/bigquery_schema.json
+bq mk --table --time_partitioning_type=DAY metric_export.sd_metrics_stats ./bigquery_schemas/bigquery_schema_stats_table.json
+bq mk --table metric_export.sd_metrics_params  ./bigquery_schemas/bigquery_schema_params_table.json
 ```
 
 5. Replace the JSON token in the config.py files
@@ -34,13 +34,13 @@ Generate a new token and then replace that token in the each of config.py files.
 ```sh
 TOKEN=$(python -c "import uuid;  msg = uuid.uuid4(); print msg")
 LIST_PROJECTS_TOKEN=$(python -c "import uuid;  msg = uuid.uuid4(); print msg")
-sed -i s/16b2ecfb-7734-48b9-817d-4ac8bd623c87/$TOKEN/g stackdriver-metrics-export/list_metrics/config.py
-sed -i s/16b2ecfb-7734-48b9-817d-4ac8bd623c87/$TOKEN/g stackdriver-metrics-export/get_timeseries/config.py
-sed -i s/16b2ecfb-7734-48b9-817d-4ac8bd623c87/$TOKEN/g stackdriver-metrics-export/write_metrics/config.py
-sed -i s/16b2ecfb-7734-48b9-817d-4ac8bd623c87/$TOKEN/g stackdriver-metrics-export/list_projects/config.json
-sed -i s/16b2ecfb-7734-48b9-817d-4ac8bd623c87/$TOKEN/g stackdriver-metrics-export/list_projects/config.json
-sed -ibk "s/99a9ffa8797a629783cb4aa762639e92b098bac5/$LIST_PROJECTS_TOKEN/g" stackdriver-metrics-export/list_projects/config.json
-sed -ibk "s/YOUR_PROJECT_ID/$PROJECT_ID/g" stackdriver-metrics-export/list_projects/config.json
+sed -i s/16b2ecfb-7734-48b9-817d-4ac8bd623c87/$TOKEN/g list_metrics/config.py
+sed -i s/16b2ecfb-7734-48b9-817d-4ac8bd623c87/$TOKEN/g get_timeseries/config.py
+sed -i s/16b2ecfb-7734-48b9-817d-4ac8bd623c87/$TOKEN/g write_metrics/config.py
+sed -i s/16b2ecfb-7734-48b9-817d-4ac8bd623c87/$TOKEN/g list_projects/config.json
+sed -i s/16b2ecfb-7734-48b9-817d-4ac8bd623c87/$TOKEN/g list_projects/config.json
+sed -ibk "s/99a9ffa8797a629783cb4aa762639e92b098bac5/$LIST_PROJECTS_TOKEN/g" list_projects/config.json
+sed -ibk "s/YOUR_PROJECT_ID/$PROJECT_ID/g" list_projects/config.json
 ```
 
 6. Deploy the App Engine apps
@@ -66,19 +66,19 @@ echo "y" | gcloud app deploy
 If you already have a default App Engine app in your project, enter the following command.
 
 ```sh
-export LIST_METRICS_URL=$(gcloud app browse -s list-metrics)
+export LIST_METRICS_URL=https://write-metrics-dot-$PROJECT_ID.appspot.com
 ```
 if this was your first App Engine app in your project, enter the following command. 
 
 ```sh
-export LIST_METRICS_URL=$(gcloud app browse)
+export LIST_METRICS_URL=https://$PROJECT_ID.appspot.com
 ```
 
 Now, get the get_timeseries and write_metrics URLs and create the Pub/Sub topics and subscriptions
 
 ```sh
-export GET_TIMESERIES_URL=$(gcloud app browse -s get-timeseries)
-export WRITE_METRICS_URL=$(gcloud app browse -s write-metrics)
+export GET_TIMESERIES_URL=https://get-timeseries-dot-$PROJECT_ID.appspot.com
+export WRITE_METRICS_URL=https://write-metrics-dot-$PROJECT_ID.appspot.com
 
 gcloud pubsub topics create metrics_export_start
 gcloud pubsub subscriptions create metrics_export_start_sub --topic metrics_export_start --ack-deadline=60 --message-retention-duration=10m --push-endpoint="$LIST_METRICS_URL/_ah/push-handlers/receive_message"
