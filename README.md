@@ -38,7 +38,6 @@ sed -i s/16b2ecfb-7734-48b9-817d-4ac8bd623c87/$TOKEN/g list_metrics/config.py
 sed -i s/16b2ecfb-7734-48b9-817d-4ac8bd623c87/$TOKEN/g get_timeseries/config.py
 sed -i s/16b2ecfb-7734-48b9-817d-4ac8bd623c87/$TOKEN/g write_metrics/config.py
 sed -i s/16b2ecfb-7734-48b9-817d-4ac8bd623c87/$TOKEN/g list_projects/config.json
-sed -i s/16b2ecfb-7734-48b9-817d-4ac8bd623c87/$TOKEN/g list_projects/config.json
 sed -ibk "s/99a9ffa8797a629783cb4aa762639e92b098bac5/$LIST_PROJECTS_TOKEN/g" list_projects/config.json
 sed -ibk "s/YOUR_PROJECT_ID/$PROJECT_ID/g" list_projects/config.json
 ```
