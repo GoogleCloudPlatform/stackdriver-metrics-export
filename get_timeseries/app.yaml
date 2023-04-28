@@ -13,26 +13,14 @@
 # limitations under the License.
 
 service: get-timeseries
-runtime: python27
-api_version: 1
-threadsafe: true
+runtime: python310
+app_engine_apis: true
+entrypoint: gunicorn -b :$PORT -w 2 main:app
 
 basic_scaling:
   max_instances: 25
   idle_timeout: 10m
 
-libraries:
-- name: ssl
-  version: latest
-
 handlers:
-- url: /_ah/push-handlers/.*
-  script: main.app
-  login: admin
-  secure: always
-
-- url: /_ah/start
-  script: start.app
-
-- url: /_ah/stop
-  script: stop.app
+- url: /.*
+  script: auto

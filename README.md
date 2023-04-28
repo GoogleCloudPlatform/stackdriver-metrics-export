@@ -1,5 +1,5 @@
 # Reference Implementation for Stackdriver Metric Export
-This implementation is meant to demonstrate how to use the projects.timeseries.list API, PubSub and BigQuery to store aggregated Stackdriver Monitoring 
+This implementation is meant to demonstrate how to use the `projects.timeseries.list` API, PubSub and BigQuery to store aggregated Cloud Monitoring 
 metrics for long-term analysis in BigQuery.
 
 # Deployment Instructions
@@ -13,7 +13,7 @@ cd stackdriver-metrics-export
 gcloud services enable compute.googleapis.com \
     cloudscheduler.googleapis.com \
     cloudfunctions.googleapis.com \
-    cloudresourcemanager.googleapis.com \
+    cloudresourcemanager.googleapis.com
 ```
 3. Set your PROJECT_ID variable, by replacing [YOUR_PROJECT_ID] with your GCP project id
 ```sh
@@ -32,8 +32,8 @@ bq mk --table metric_export.sd_metrics_params  ./bigquery_schemas/bigquery_schem
 5. Replace the JSON token in the config.py files
 Generate a new token and then replace that token in the each of config.py files. Use this same token in the Cloud Scheduler.
 ```sh
-TOKEN=$(python -c "import uuid;  msg = uuid.uuid4(); print msg")
-LIST_PROJECTS_TOKEN=$(python -c "import uuid;  msg = uuid.uuid4(); print msg")
+TOKEN=$(python -c "import uuid;  msg = uuid.uuid4(); print(msg)")
+LIST_PROJECTS_TOKEN=$(python -c "import uuid;  msg = uuid.uuid4(); print (msg)")
 sed -i s/16b2ecfb-7734-48b9-817d-4ac8bd623c87/$TOKEN/g list_metrics/config.py
 sed -i s/16b2ecfb-7734-48b9-817d-4ac8bd623c87/$TOKEN/g get_timeseries/config.py
 sed -i s/16b2ecfb-7734-48b9-817d-4ac8bd623c87/$TOKEN/g write_metrics/config.py
@@ -43,55 +43,68 @@ sed -ibk "s/YOUR_PROJECT_ID/$PROJECT_ID/g" list_projects/config.json
 ```
 
 6. Deploy the App Engine apps
-Run a gcloud app create if you don't already have an App Engine app in your project and remove the service: list-metrics from app.yaml
+Run `gcloud app create` if you don't already have an App Engine app in your project and remove the line `service: list-metrics` from app.yaml.
+
+__Note:__ The default service account for App Engine has the project `Editor` permission. If you don't use the default service account, you need to grant the App Engine service account sufficient permissions for Cloud Monitoring, Pub/Sub, Cloud Storate, and BigQuery.
 
 ```sh
 cd list_metrics
 pip install -t lib -r requirements.txt
 echo "y" | gcloud app deploy
+```
 
+Copy the URL from the `Deployed service` output and add it to the `LIST_METRICS_URL` variable.
+The following is an example. Please replace __PROJECT_ID__ and [__REGION_ID__](https://cloud.google.com/appengine/docs/legacy/standard/python/how-requests-are-routed#region-id) with the real values
+
+```sh
+export LIST_METRICS_URL=https://list-metrics-dot-PROJECT_ID.REGION_ID.r.appspot.com
+```
+
+Do the same for the other services:
+
+```
 cd ../get_timeseries
 pip install -t lib -r requirements.txt
 echo "y" | gcloud app deploy
+```
+Copy the URL from the `Deployed service` output and add it to the `GET_TIMESERIES_URL` variable.
+The following is an example. Note: __PROJECT_ID__ and [__REGION_ID__](https://cloud.google.com/appengine/docs/legacy/standard/python/how-requests-are-routed#region-id) are replaced with the real values.
 
+```sh
+export GET_TIMESERIES_URL=https://get-timeseries-dot-PROJECT_ID-REGION_ID.r.appspot.com
+```
+
+```
 cd ../write_metrics
 pip install -t lib -r requirements.txt
 echo "y" | gcloud app deploy
 ```
+Copy the URL from the `Deployed service` output and add it to the `WRITE_METRICS_URL` variable.
+The following is an example. Note: __PROJECT_ID__ and [__REGION_ID__](https://cloud.google.com/appengine/docs/legacy/standard/python/how-requests-are-routed#region-id) are replaced with the real values.
 
+```sh
+export WRITE_METRICS_URL=https://write-metrics-dot-PROJECT_ID-REGION_ID.appspot.com
+```
 
 7. Create the Pub/Sub topics and subscriptions after setting YOUR_PROJECT_ID
 
-If you already have a default App Engine app in your project, enter the following command.
-
-```sh
-export LIST_METRICS_URL=https://list-metrics-dot-$PROJECT_ID.appspot.com
-```
-if this was your first App Engine app in your project, enter the following command. 
-
-```sh
-export LIST_METRICS_URL=https://$PROJECT_ID.appspot.com
-```
 
 Now, get the get_timeseries and write_metrics URLs and create the Pub/Sub topics and subscriptions
 
 ```sh
-export GET_TIMESERIES_URL=https://get-timeseries-dot-$PROJECT_ID.appspot.com
-export WRITE_METRICS_URL=https://write-metrics-dot-$PROJECT_ID.appspot.com
-
 gcloud pubsub topics create metrics_export_start
-gcloud pubsub subscriptions create metrics_export_start_sub --topic metrics_export_start --ack-deadline=60 --message-retention-duration=10m --push-endpoint="$LIST_METRICS_URL/_ah/push-handlers/receive_message"
+gcloud pubsub subscriptions create metrics_export_start_sub --topic metrics_export_start --ack-deadline=60 --message-retention-duration=10m --push-endpoint="$LIST_METRICS_URL/push-handlers/receive_messages"
 
 gcloud pubsub topics create metrics_list
-gcloud pubsub subscriptions create metrics_list_sub --topic metrics_list --ack-deadline=60 --message-retention-duration=30m --push-endpoint="$GET_TIMESERIES_URL/_ah/push-handlers/receive_message"
+gcloud pubsub subscriptions create metrics_list_sub --topic metrics_list --ack-deadline=60 --message-retention-duration=30m --push-endpoint="$GET_TIMESERIES_URL/push-handlers/receive_messages"
 
 gcloud pubsub topics create write_metrics
-gcloud pubsub subscriptions create write_metrics_sub --topic write_metrics --ack-deadline=60 --message-retention-duration=30m  --push-endpoint="$WRITE_METRICS_URL/_ah/push-handlers/receive_message"
+gcloud pubsub subscriptions create write_metrics_sub --topic write_metrics --ack-deadline=60 --message-retention-duration=30m  --push-endpoint="$WRITE_METRICS_URL/push-handlers/receive_messages"
 ``` 
 
 8. Create a service account for the list_projects function
 ```sh
-gcloud beta iam service-accounts create \
+gcloud iam service-accounts create \
 gce-list-projects \
 --description "Used for the function that lists the projects for the GCE Footprint Cloud Function"
 export LIST_PROJECTS_SERVICE_ACCOUNT=gce-list-projects@$PROJECT_ID.iam.gserviceaccount.com 
@@ -99,9 +112,9 @@ export LIST_PROJECTS_SERVICE_ACCOUNT=gce-list-projects@$PROJECT_ID.iam.gservicea
 
 9 Assign IAM permissions to the service account
 ```sh
-gcloud projects add-iam-policy-binding  $PROJECT_ID --member="serviceAccount:$LIST_PROJECTS_SERVICE_ACCOUNT"     --role="roles/compute.viewer"
-gcloud projects add-iam-policy-binding  $PROJECT_ID --member="serviceAccount:$LIST_PROJECTS_SERVICE_ACCOUNT"     --role="roles/compute.browser"
-gcloud projects add-iam-policy-binding  $PROJECT_ID --member="serviceAccount:$LIST_PROJECTS_SERVICE_ACCOUNT"     --role="roles/pubsub.publisher"
+gcloud projects add-iam-policy-binding  $PROJECT_ID --member="serviceAccount:$LIST_PROJECTS_SERVICE_ACCOUNT" --role="roles/compute.viewer"
+gcloud projects add-iam-policy-binding  $PROJECT_ID --member="serviceAccount:$LIST_PROJECTS_SERVICE_ACCOUNT" --role="roles/pubsub.publisher"
+
 ```
 
 10. Deploy the list_projects function
@@ -109,7 +122,7 @@ gcloud projects add-iam-policy-binding  $PROJECT_ID --member="serviceAccount:$LI
 cd ../list_projects 
 gcloud functions deploy list_projects \
 --trigger-topic metric_export_get_project_start \
---runtime nodejs10 \
+--runtime nodejs18 \
 --entry-point list_projects \
 --service-account=$LIST_PROJECTS_SERVICE_ACCOUNT
 ```

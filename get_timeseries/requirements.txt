@@ -1,1 +1,4 @@
+Flask
+gunicorn
+appengine-python-standard>=1.0.0
 google-api-python-client

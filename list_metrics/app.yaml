@@ -12,23 +12,15 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-service: list-metrics 
-runtime: python27
-api_version: 1
-threadsafe: true
+service: list-metrics
+runtime: python310
+app_engine_apis: true
+entrypoint: gunicorn -b :$PORT -w 2 main:app
 
 basic_scaling:
   max_instances: 25
   idle_timeout: 10m
 
 handlers:
-- url: /_ah/push-handlers/.*
-  script: main.app
-  login: admin
-  secure: always
-
-- url: /_ah/start
-  script: start.app
-
-- url: /_ah/stop
-  script: stop.app
+- url: /.*
+  script: auto

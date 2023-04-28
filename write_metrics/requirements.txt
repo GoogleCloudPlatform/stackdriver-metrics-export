@@ -1,1 +1,5 @@
+Flask
+gunicorn
+google-cloud-storage
+appengine-python-standard>=1.0.0
 google-api-python-client

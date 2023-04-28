@@ -111,14 +111,14 @@ class AppTest(unittest.TestCase):
             "useLegacySql": "false"
         }
         logging.debug('body: {}'.format(json.dumps(body,sort_keys=True, indent=4)))
-        print 'body: {}'.format(json.dumps(body,sort_keys=True, indent=4))
+        print('body: {}'.format(json.dumps(body,sort_keys=True, indent=4)))
         response = bigquery.jobs().query(
             projectId=self.project_id,
             body=body
         ).execute()
 
         logging.debug("BigQuery said... = {}".format(response))
-        print "BigQuery said... = {}".format(response)
+        print("BigQuery said... = {}".format(response))
 
         return response
 
@@ -131,7 +131,7 @@ class AppTest(unittest.TestCase):
         ).execute()
 
         logging.debug("BigQuery said... = {}".format(response))
-        print "BigQuery said... = {}".format(json.dumps(response,sort_keys=True, indent=4))
+        print("BigQuery said... = {}".format(json.dumps(response,sort_keys=True, indent=4)))
 
         return response
 
@@ -172,12 +172,12 @@ class AppTest(unittest.TestCase):
         response = self.get_list_metrics_output_stats(self.batch_id)
         # print "response: {}".format(response)
         list_metric_row_cnt = response["rows"][0]["f"][0]["v"]
-        print "list_metric_row_cnt: {}".format(list_metric_row_cnt)
+        print("list_metric_row_cnt: {}".format(list_metric_row_cnt))
 
         response = self.get_get_timeseries_output_stats(self.batch_id)
         # print "response: {}".format(response)
         get_timeseries_row_cnt = response["rows"][0]["f"][0]["v"]
-        print "get_timeseries_row_cnt: {}".format(get_timeseries_row_cnt)
+        print("get_timeseries_row_cnt: {}".format(get_timeseries_row_cnt))
 
         assert list_metric_row_cnt == get_timeseries_row_cnt, \
             "Failed #1: The # of records written from list_metrics doesn't " \
@@ -191,12 +191,12 @@ class AppTest(unittest.TestCase):
         response = self.get_stats(self.batch_id,"get_timeseries")
         # print "response: {}".format(response)
         get_timeseries_row_cnt = response["rows"][0]["f"][0]["v"]
-        print "get_timeseries_row_cnt: {}".format(get_timeseries_row_cnt)
+        print("get_timeseries_row_cnt: {}".format(get_timeseries_row_cnt))
 
         response = self.get_stats(self.batch_id,"write_metrics")
         # print "response: {}".format(response)
         write_metrics_row_cnt = response["rows"][0]["f"][0]["v"]
-        print "write_metrics_row_cnt: {}".format(write_metrics_row_cnt)
+        print("write_metrics_row_cnt: {}".format(write_metrics_row_cnt))
 
         assert get_timeseries_row_cnt == write_metrics_row_cnt, \
             "Failed #2: The # of records written from get_timeseries doesn't " \
@@ -216,7 +216,7 @@ class AppTest(unittest.TestCase):
             write_metrics_row_cnt = 0
         else:
             write_metrics_row_cnt = int(write_metrics_row_cnt)
-        print "write_metrics_row_cnt: {}".format(write_metrics_row_cnt)
+        print("write_metrics_row_cnt: {}".format(write_metrics_row_cnt))
 
         response = self.get_metrics_export_cnt(self.batch_id)
         metrics_bq_row_cnt = response["rows"][0]["f"][0]["v"]
@@ -224,7 +224,7 @@ class AppTest(unittest.TestCase):
             metrics_bq_row_cnt = 0
         else:
             metrics_bq_row_cnt = int(metrics_bq_row_cnt)
-        print "metrics_bq_row_cnt: {}".format(metrics_bq_row_cnt)
+        print("metrics_bq_row_cnt: {}".format(metrics_bq_row_cnt))
 
         assert write_metrics_row_cnt == metrics_bq_row_cnt, \
             "Failed #3: The # of records written from write_metrics doesn't " \
@@ -240,7 +240,7 @@ class AppTest(unittest.TestCase):
         metric_descriptors_cnt = self.get_metric_descriptors_cnt()
         response = self.get_list_metrics_num_full_recs(self.batch_id)
         bq_metrics_cnt = int(response["rows"][0]["f"][0]["v"])
-        print "bq_metrics_cnt: {}, metric_descriptors_cnt: {}".format(bq_metrics_cnt, metric_descriptors_cnt)
+        print("bq_metrics_cnt: {}, metric_descriptors_cnt: {}".format(bq_metrics_cnt, metric_descriptors_cnt))
 
         assert metric_descriptors_cnt == bq_metrics_cnt, \
             "Failed #4: The # of metric descriptors written from list_metrics  "\

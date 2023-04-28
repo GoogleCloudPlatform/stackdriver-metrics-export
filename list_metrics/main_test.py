@@ -14,80 +14,105 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-import webtest
-import unittest
+import pytest
+from main import app as flask_app
+
 import main
 import config
 import base64
 import json
 
 
-class AppTest(unittest.TestCase):
-    def setUp(self):
-        """ Set-up the webtest app
-        """
-        self.app = webtest.TestApp(main.app)
-    
-    def test_check_date_format(self):
-        """ Test the check_date_format function
-        """
-        results = main.check_date_format("23232")
-        self.assertIsNone(results)
-        results = main.check_date_format("2019-02-08T14:00:00.311635Z")
-        self.assertIsNotNone(results)
-
-    def test_post_empty_data(self):
-        """ Test sending an empty message
-        """
-        response = self.app.post('/_ah/push-handlers/receive_message')
-        self.assertEqual(response.status_int, 200)
-        self.assertEqual(response.body, "No request body received")
-
-    def test_incorrect_aggregation_alignment_period_post(self):   
-        """ Test sending incorrect aggregation_alignment_period as input
-        """
-        request = self.build_request(aggregation_alignment_period = "12")
-        response = self.app.post('/_ah/push-handlers/receive_message',json.dumps(request).encode('utf-8'),content_type="application/json")
-        self.assertEqual(response.status_int, 200)
-        self.assertRaises(ValueError)
-        self.assertEqual(response.body, "aggregation_alignment_period needs to be digits followed by an 's' such as 3600s, received: 12")
-
-        request = self.build_request(aggregation_alignment_period = "12s")
-        response = self.app.post('/_ah/push-handlers/receive_message',json.dumps(request).encode('utf-8'),content_type="application/json")
-        self.assertEqual(response.status_int, 200)
-        self.assertRaises(ValueError)
-        self.assertEqual(response.body, "aggregation_alignment_period needs to be more than 60s, received: 12s")
+@pytest.fixture
+def app():
+    yield flask_app
 
 
-    def test_exclusions_check(self):
-        """ Test the exclusion logic
-        """
-        assert main.check_exclusions("aws.googleapis.com/flex/cpu/utilization") == False, "This should be excluded"
-        assert main.check_exclusions("appengine.googleapis.com/flex/cpu/utilization") == True, "This should not be excluded"
+@pytest.fixture
+def client(app):
+    return app.test_client()
 
 
+def test_check_date_format():
+    """Test the check_date_format function"""
+    results = main.check_date_format("23232")
+    assert results is None
+    results = main.check_date_format("2019-02-08T14:00:00.311635Z")
+    assert results is not None
 
-    def test_incorrect_token_post(self): 
-        """ Test sending an incorrect token
-        """
-        request = self.build_request(token="incorrect_token")
-        response = self.app.post('/_ah/push-handlers/receive_message',json.dumps(request).encode('utf-8'),content_type="application/json")
-        self.assertEqual(response.status_int, 200)
-        self.assertRaises(ValueError)
-    
-    def build_request(self,token=config.PUBSUB_VERIFICATION_TOKEN,aggregation_alignment_period="3600s"):
-        """ Build a Pub/Sub message as input
-        """
 
-        payload = {
-            "token": token,
-            "aggregation_alignment_period": aggregation_alignment_period
+def test_post_empty_data(app, client):
+    """Test sending an empty message"""
+    response = client.post("/push-handlers/receive_messages")
+    assert response.status_code == 500
+    assert response.get_data(as_text=True) == "No request data received"
+
+
+def test_incorrect_aggregation_alignment_period_post(app, client):
+    mimetype = "application/json"
+    headers = {
+        "Content-Type": mimetype,
+        "Accept": mimetype,
+    }
+    """Test sending incorrect aggregation_alignment_period as input"""
+    request = build_request(aggregation_alignment_period="12")
+    response = client.post(
+        "/push-handlers/receive_messages", data=json.dumps(request).encode("utf-8"), headers=headers
+    )
+    assert response.status_code == 500
+    assert (
+        response.get_data(as_text=True)
+        == "aggregation_alignment_period needs to be digits followed by an 's' such as 3600s, received: 12"
+    )
+
+    request = build_request(aggregation_alignment_period="12s")
+    response = client.post(
+        "/push-handlers/receive_messages", data=json.dumps(request).encode("utf-8"), headers=headers
+    )
+    assert response.status_code == 500
+    assert (
+        response.get_data(as_text=True)
+        == "aggregation_alignment_period needs to be more than 60s, received: 12s",
+    )
+
+
+def test_exclusions_check():
+    """Test the exclusion logic"""
+    assert (
+        main.check_exclusions({"type": "aws.googleapis.com/flex/cpu/utilization"})
+        == False
+    ), "This should be excluded"
+    assert (
+        main.check_exclusions({"type": "appengine.googleapis.com/flex/cpu/utilization"})
+        == True
+    ), "This should not be excluded"
+
+
+def test_incorrect_token_post(app, client):
+    """Test sending an incorrect token"""
+    request = build_request(token="incorrect_token")
+    mimetype = "application/json"
+    headers = {
+        "Content-Type": mimetype,
+        "Accept": mimetype,
+    }
+    response = client.post("/push-handlers/receive_messages", data=json.dumps(request), headers=headers)
+    assert response.status_code == 500
+
+
+def build_request(
+    token=config.PUBSUB_VERIFICATION_TOKEN,
+    aggregation_alignment_period="3600s",
+):
+    """Build a Pub/Sub message as input"""
+
+    payload = {
+        "token": token,
+        "aggregation_alignment_period": aggregation_alignment_period,
+    }
+    request = {
+        "message": {
+            "data": base64.b64encode(json.dumps(payload).encode("utf-8")).decode()
         }
-        request = {
-            "message": 
-                {
-                    "data": base64.b64encode(json.dumps(payload))
-                }
-            
-        }
-        return request
+    }
+    return request

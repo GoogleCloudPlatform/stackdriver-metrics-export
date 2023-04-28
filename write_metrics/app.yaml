@@ -13,16 +13,10 @@
 # limitations under the License.
 
 service: write-metrics 
-runtime: python27
-api_version: 1
-threadsafe: true
-
-libraries:
-- name: ssl
-  version: latest
+runtime: python310
+app_engine_apis: true
+entrypoint: gunicorn -b :$PORT -w 2 main:app
 
 handlers:
-- url: /_ah/push-handlers/.*
-  script: main.app
-  login: admin
-  secure: always
+- url: /.*
+  script: auto
