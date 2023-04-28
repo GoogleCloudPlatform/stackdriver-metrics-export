@@ -439,3 +439,5 @@ def root():
     except Exception as e:
         logging.error("Error: {}".format(e))
         return Response(f"{e}", status=500)
+
+    return Response("Ok", status=200)

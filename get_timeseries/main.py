@@ -433,7 +433,8 @@ def post():
         }
         # get the metrics and publish to Pub/Sub
         response_code = get_and_publish_timeseries(data, metadata)
-        return Response("Ok", status=response_code)
     except Exception as e:
         logging.error("Error: {}".format(e))
         return Response(f"{e}", status=500)
+
+    return Response("Ok", status=response_code)

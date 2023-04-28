@@ -43,7 +43,9 @@ sed -ibk "s/YOUR_PROJECT_ID/$PROJECT_ID/g" list_projects/config.json
 ```
 
 6. Deploy the App Engine apps
-Run a gcloud app create if you don't already have an App Engine app in your project and remove the service: list-metrics from app.yaml
+Run `gcloud app create` if you don't already have an App Engine app in your project and remove the line `service: list-metrics` from app.yaml.
+
+__Note:__ The default service account for App Engine has the project `Editor` permission. If you don't use the default service account, you need to grant the App Engine service account sufficient permissions for Cloud Monitoring, Pub/Sub, Cloud Storate, and BigQuery.
 
 ```sh
 cd list_metrics
@@ -52,7 +54,7 @@ echo "y" | gcloud app deploy
 ```
 
 Copy the URL from the `Deployed service` output and add it to the `LIST_METRICS_URL` variable.
-The following is an example. Please replace __PROJECT_ID__ and [__REGION_ID__](https://cloud.google.com/appengine/docs/legacy/standard/python/how-requests-are-routed#region-id) with the true values
+The following is an example. Please replace __PROJECT_ID__ and [__REGION_ID__](https://cloud.google.com/appengine/docs/legacy/standard/python/how-requests-are-routed#region-id) with the real values
 
 ```sh
 export LIST_METRICS_URL=https://list-metrics-dot-PROJECT_ID.REGION_ID.r.appspot.com
@@ -66,7 +68,7 @@ pip install -t lib -r requirements.txt
 echo "y" | gcloud app deploy
 ```
 Copy the URL from the `Deployed service` output and add it to the `GET_TIMESERIES_URL` variable.
-The following is an example. Note: __PROJECT_ID__ and [__REGION_ID__](https://cloud.google.com/appengine/docs/legacy/standard/python/how-requests-are-routed#region-id) are replaced with the true values.
+The following is an example. Note: __PROJECT_ID__ and [__REGION_ID__](https://cloud.google.com/appengine/docs/legacy/standard/python/how-requests-are-routed#region-id) are replaced with the real values.
 
 ```sh
 export GET_TIMESERIES_URL=https://get-timeseries-dot-PROJECT_ID-REGION_ID.r.appspot.com
@@ -78,7 +80,7 @@ pip install -t lib -r requirements.txt
 echo "y" | gcloud app deploy
 ```
 Copy the URL from the `Deployed service` output and add it to the `WRITE_METRICS_URL` variable.
-The following is an example. Note: __PROJECT_ID__ and [__REGION_ID__](https://cloud.google.com/appengine/docs/legacy/standard/python/how-requests-are-routed#region-id) are replaced with the correct values.
+The following is an example. Note: __PROJECT_ID__ and [__REGION_ID__](https://cloud.google.com/appengine/docs/legacy/standard/python/how-requests-are-routed#region-id) are replaced with the real values.
 
 ```sh
 export WRITE_METRICS_URL=https://write-metrics-dot-PROJECT_ID-REGION_ID.appspot.com
@@ -112,6 +114,7 @@ export LIST_PROJECTS_SERVICE_ACCOUNT=gce-list-projects@$PROJECT_ID.iam.gservicea
 ```sh
 gcloud projects add-iam-policy-binding  $PROJECT_ID --member="serviceAccount:$LIST_PROJECTS_SERVICE_ACCOUNT" --role="roles/compute.viewer"
 gcloud projects add-iam-policy-binding  $PROJECT_ID --member="serviceAccount:$LIST_PROJECTS_SERVICE_ACCOUNT" --role="roles/pubsub.publisher"
+
 ```
 
 10. Deploy the list_projects function

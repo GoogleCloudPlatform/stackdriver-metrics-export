@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+service: list-metrics
 runtime: python310
 app_engine_apis: true
 entrypoint: gunicorn -b :$PORT -w 2 main:app
