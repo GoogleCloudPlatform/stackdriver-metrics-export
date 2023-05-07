@@ -155,9 +155,9 @@ gcloud pubsub topics publish metrics_export_start --message "{\"token\": \"$TOKE
 
 Configure your project_id and lookup the batch_id in the config.py file.
 ```sh
-cd test
+cd ../test
 export PROJECT_ID=$(gcloud config get-value project)
-export TIMESTAMP=$(date -d "-2 hour"  +%Y-%m-%dT%k:%M:00Z)
+export TIMESTAMP=$(date -d "-2 hour"  +%Y-%m-%dT%H:%M:00Z)
 export BATCH_ID=$(gcloud logging read "resource.type=\"gae_app\" AND resource.labels.module_id=\"list-metrics\" AND logName=\"projects/$PROJECT_ID/logs/appengine.googleapis.com%2Frequest_log\" AND protoPayload.line.logMessage:\"batch_id:\" AND timestamp >= \"$TIMESTAMP\"" --limit 1 --format json | grep "batch_id:" | awk '{ print substr($3,1,32); }')
 sed -i s/YOUR_PROJECT_ID/$PROJECT_ID/g config.py
 sed -i s/R8BK5S99QU4ZZOGCR1UDPWVH6LPKI5QU/$BATCH_ID/g config.py
