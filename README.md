@@ -45,7 +45,7 @@ sed -ibk "s/YOUR_PROJECT_ID/$PROJECT_ID/g" list_projects/config.json
 6. Deploy the App Engine apps
 Run `gcloud app create` if you don't already have an App Engine app in your project and remove the line `service: list-metrics` from app.yaml.
 
-__Note:__ The default service account for App Engine has the project `Editor` permission. If you don't use the default service account, you need to grant the App Engine service account sufficient permissions for Cloud Monitoring, Pub/Sub, Cloud Storate, and BigQuery.
+__Note:__ The default service account for App Engine has the project `Editor` permission. If you don't use the default service account, you need to grant the App Engine service account sufficient permissions for Cloud Monitoring, Pub/Sub, Cloud Storage, and BigQuery.
 
 ```sh
 cd list_metrics
