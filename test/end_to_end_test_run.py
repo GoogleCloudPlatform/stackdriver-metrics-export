@@ -244,7 +244,7 @@ class AppTest(unittest.TestCase):
 
         assert metric_descriptors_cnt == bq_metrics_cnt, \
             "Failed #4: The # of metric descriptors written from list_metrics  "\
-            "doesn'tmatch the # of records received from the Monitoring API call "\
+            "doesn't match the # of records received from the Monitoring API call "\
             "bq_metrics_cnt: {}, metric_descriptors_cnt: {}"\
             .format(bq_metrics_cnt, metric_descriptors_cnt)
 
